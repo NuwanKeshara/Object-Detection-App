@@ -10,14 +10,16 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.provider.MediaStore;
+//import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -33,41 +35,52 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-
     private Button snapBtn;
     private Button detectBtn;
     private Button selectBtn;
     private ImageView imageView;
     private Bitmap imageBitmap;
+    private Paint myRectPaint;
+    private TextView textView;
+    /*ImageView imageView;
+    Button imgChooseBtn;
 
+
+    private static final int IMAGE_PICK_CODE = 1000;
+    private static final int PERMISSION_CODE = 1001;*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_object_function);
 
         snapBtn = findViewById(R.id.snapBtn);
         detectBtn = findViewById(R.id.detectBtn);
         selectBtn = findViewById(R.id.selectBtn);
         imageView = findViewById(R.id.imageView);
+        textView = findViewById(R.id.textView);
+
         snapBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 dispatchTakePictureIntent();
             }
         });
+
         detectBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 detectImage();
             }
         });
+
         selectBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 selectImage();
             }
         });
+
     }
 
     static final int REQUEST_IMAGE_SELECT = 2;
@@ -95,12 +108,14 @@ public class MainActivity extends AppCompatActivity {
             Bundle extras = data.getExtras();
             imageBitmap = (Bitmap) extras.get("data");
             imageView.setImageBitmap(imageBitmap);
+            textView.setText("");
         }
         else if(requestCode == REQUEST_IMAGE_SELECT && resultCode == RESULT_OK){
             try {
                 InputStream inputStream = getContentResolver().openInputStream(data.getData());
                 imageBitmap = BitmapFactory.decodeStream(inputStream);
                 imageView.setImageBitmap(imageBitmap);
+                textView.setText("");
 
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -111,6 +126,10 @@ public class MainActivity extends AppCompatActivity {
     private void detectImage(){
 
 
+        myRectPaint = new Paint();
+        myRectPaint.setStrokeWidth(3);
+        myRectPaint.setColor(Color.RED);
+        myRectPaint.setStyle(Paint.Style.STROKE);
 
         FirebaseVisionObjectDetectorOptions options =
                 new FirebaseVisionObjectDetectorOptions.Builder()
@@ -129,10 +148,9 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onSuccess(List<FirebaseVisionObject> detectedObjects) {
 
-                                Paint myRectPaint = new Paint();
-                                myRectPaint.setStrokeWidth(5);
-                                myRectPaint.setColor(Color.RED);
-                                myRectPaint.setStyle(Paint.Style.STROKE);
+                                if(detectedObjects.size() == 0){
+                                    Toast.makeText(MainActivity.this, "No Objects :(", Toast.LENGTH_LONG).show();
+                                }
 
                                 Bitmap tempBitmap = Bitmap.createBitmap(imageBitmap.getWidth(), imageBitmap.getHeight(), Bitmap.Config.RGB_565);
                                 Canvas tempCanvas = new Canvas(tempBitmap);
@@ -146,14 +164,16 @@ public class MainActivity extends AppCompatActivity {
 
                                 }
                                 imageView.setImageDrawable(new BitmapDrawable(getResources(),tempBitmap));
+                                textView.setTextSize(20);
+                                textView.setText("No of Objects Detected : "+ detectedObjects.size());
                             }
                         })
                 .addOnFailureListener(
                         new OnFailureListener() {
                             @Override
                             public void onFailure(@NonNull Exception e) {
-                                // Task failed with an exception
-                                // ...
+                                Toast.makeText(MainActivity.this, "Error :(", Toast.LENGTH_LONG).show();
+                                textView.setText("");
                             }
                         });
 
@@ -161,4 +181,63 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+
+
+        /*imageView = findViewById(R.id.imgPreview);
+        imgChooseBtn = findViewById(R.id.snapBtn);
+
+        imgChooseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+                    if(checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED){
+
+                        String[] permission = {Manifest.permission.READ_EXTERNAL_STORAGE};
+                        requestPermissions(permission,PERMISSION_CODE);
+                    }
+                    else{
+
+                        pickImageFromGallery();
+
+                    }
+                }//main if
+                else{
+
+                    pickImageFromGallery();
+                }
+            }
+        });*/
+
+
+  /*  private void pickImageFromGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent, IMAGE_PICK_CODE);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+            switch (requestCode){
+                case PERMISSION_CODE:{
+                    if(grantResults.length > 0 && grantResults[0] ==
+                    PackageManager.PERMISSION_GRANTED){
+
+                        pickImageFromGallery();
+                    }
+                    else{
+                        Toast.makeText(this,"! Permission Denied", Toast.LENGTH_SHORT);
+                    }
+                }
+            }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        imageView.setImageURI(data.getData());
+
+    }*/
 }
